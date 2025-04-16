@@ -240,16 +240,70 @@ void clampedExpSerial(float* values, int* exponents, float* output, int N) {
   }
 }
 
-void clampedExpVector(float* values, int* exponents, float* output, int N) {
+void clampedExpVector(float* values, int* exponents, float* output, int N) 
+{
+  //
+    // CS149 STUDENTS TODO: Implement your vectorized version of
+    // clampedExpSerial() here.
+    //
+    // Your solution should work for any value of
+    // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
 
-  //
-  // CS149 STUDENTS TODO: Implement your vectorized version of
-  // clampedExpSerial() here.
-  //
-  // Your solution should work for any value of
-  // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
-  //
-  
+
+
+
+  __cs149_vec_float value;              // stores values x
+  __cs149_vec_int exp;                // stores exponents y
+  __cs149_vec_float res;              //result
+
+  __cs149_vec_int zero = _cs149_vset_int(0);
+  __cs149_vec_int one = _cs149_vset_int(1);
+  __cs149_vec_float clamp = _cs149_vset_float(9.999999f);
+
+
+  //masks would determine which fields of vector are to be processed
+  __cs149_mask maskZero, maskNotZero, maskAll, maskClamp;
+
+
+  for (int i = 0; i < N; i = i + VECTOR_WIDTH) 
+  {
+
+        // init result 
+        __cs149_vec_float result = _cs149_vset_float(1.f); 
+
+        
+        // checking for last iteration
+        if (i == (N / VECTOR_WIDTH) * VECTOR_WIDTH) 
+        {
+            maskAll = _cs149_init_ones(N % VECTOR_WIDTH);     // n not multiple of width
+        } 
+        else 
+        {
+            maskAll = _cs149_init_ones(VECTOR_WIDTH); 
+        }
+
+       
+        _cs149_vload_float(value, values + i, maskAll);    
+        _cs149_vload_int(exp, exponents + i, maskAll);   
+
+        // if y == 0
+        _cs149_veq_int(maskZero, exp, zero, maskAll); 
+        maskNotZero = _cs149_mask_not(maskZero);          // maskNotZero = !maskIsZero
+
+        // Calculations here
+        for (int j = 1; j <= EXP_MAX; j++) 
+        {
+            __cs149_mask active = _cs149_init_ones(min(VECTOR_WIDTH, N - i)); 
+            _cs149_vmult_float(result, result, value, maskNotZero);                     // result *= x   ajeebbb itni ab phrse dekhni
+        }
+
+        // Clamp 
+        _cs149_vgt_float(maskClamp, result, clamp, maskClamp);           // maskGreaterThan99 = (result > 9.999999)
+        _cs149_vset_float(result, 9.999999f, maskClamp);                 // result = 9.999999 if result > 9.999999
+
+        _cs149_vstore_float(output + i, result, maskAll);
+        
+  }
 }
 
 // returns the sum of all elements in values
